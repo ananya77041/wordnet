@@ -5,6 +5,7 @@ public class WordNet {
 	private HashMap<String, Node> nounLU;
 	private int numSynsets;
 	private Digraph hypernym;
+	private SAP sap;
 	
 	private class Node {
 		private int value;
@@ -53,36 +54,88 @@ public class WordNet {
    private void readHypernyms(String hypernyms) {
 	   hypernym = new Digraph(numSynsets);
 	   In in = new In(hypernyms);
+	   int roots = 0;
+	   boolean[] rootCheck = new boolean[numSynsets];
 	   while (!in.isEmpty()) {
 		   String l = in.readLine();
 		   String[] fields = l.split(",");		   
 		   int numFields = fields.length;
+		   
+		   if (numFields == 1) roots++;
+		   rootCheck[Integer.parseInt(fields[0])] = true;
+		   
 		   for (int i = 1; i < numFields; i++) {
 			   hypernym.addEdge(Integer.parseInt(fields[0]), Integer.parseInt(fields[i]));
 		   }
 	   }
+	   
+	   for (int i = 0; i < rootCheck.length; i++) {
+		   if (!rootCheck[i]) roots++;
+	   }
+	   
+	   if (roots != 1) throw new java.lang.IllegalArgumentException();
+	   KosarajuSharirSCC testDag = new KosarajuSharirSCC(hypernym);
+       if (testDag.count() > numSynsets)
+           throw new java.lang.IllegalArgumentException();
+       
+	   sap = new SAP(hypernym);
    }
 
    // returns all WordNet nouns
    public Iterable<String> nouns() {
-	   return synset.values();
+	   return nounLU.keySet();
    }
 
    // is the word a WordNet noun?
    public boolean isNoun(String word) {
-	   if (word != null) return synset.containsValue(word);
+	   if (word != null) return nounLU.containsKey(word);
 	   else throw new java.lang.NullPointerException();
    }
 
    // distance between nounA and nounB (defined below)
    public int distance(String nounA, String nounB) {
-	   return 0;
+	   if (!isNoun(nounA) || !isNoun(nounB))
+           throw new java.lang.IllegalArgumentException();
+
+       Iterable<Integer> it0 = getIter(nounA);
+       Iterable<Integer> it1 = getIter(nounB);
+
+       return sap.length(it0, it1);
    }
 
    // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
    // in a shortest ancestral path (defined below)
    public String sap(String nounA, String nounB){
-	   int idA = synset
+	   if (!isNoun(nounA) || !isNoun(nounB))
+           throw new java.lang.IllegalArgumentException();
+
+       Iterable<Integer> it0 = getIter(nounA);
+       Iterable<Integer> it1 = getIter(nounB);
+
+       return synset.get(sap.ancestor(it0, it1));
+   }
+   
+   private Iterable<Integer> getIter(final String noun) {
+	   return new Iterable<Integer>() {
+		   public Iterator<Integer> iterator() {
+			   return new Iterator<Integer>() {
+				   Node curr = nounLU.get(noun);
+				   
+				   public boolean hasNext() {
+					   return curr != null;
+				   }
+				   
+				   public Integer next() {
+					   Integer val = curr.value;
+					   curr = curr.next;
+					   return val;
+				   }
+				   
+				   public void remove() {
+				   }				   
+			   };
+		   }
+	   };
    }
 
    // do unit testing of this class
