@@ -1,3 +1,5 @@
+import java.util.Iterator;
+
 public class SAP {
 	private final Digraph sap;
 	private int ancestor;
@@ -20,9 +22,32 @@ public class SAP {
 	   return ancestor;
    }
    
+   private void checkBounds(int v, int w) {
+       if (v < 0 || v > sap.V() - 1)
+           throw new java.lang.IndexOutOfBoundsException();
+
+       if (w < 0 || w > sap.V() - 1)
+           throw new java.lang.IndexOutOfBoundsException();
+   }
+   
+   private void checkBounds(Iterable<Integer> v, Iterable<Integer> w) {
+       Iterator<Integer> iter = v.iterator();
+       while (iter.hasNext()) {
+           int tmp = iter.next();
+           if (tmp < 0 || tmp > sap.V() - 1)
+               throw new java.lang.IndexOutOfBoundsException();
+       }
+
+       iter = w.iterator();
+       while (iter.hasNext()) {
+           int tmp = iter.next();
+           if (tmp < 0 || tmp > sap.V() - 1)
+               throw new java.lang.IndexOutOfBoundsException();
+       }
+   }
+   
    private void bfdp(int v, int w) {
-	   if (!(v > 0 && v <= (sap.V()-1))) throw new java.lang.IndexOutOfBoundsException();
-	   if (!(w > 0 && w <= (sap.V()-1))) throw new java.lang.IndexOutOfBoundsException();
+	   checkBounds(v,w);
 	   
 	   BreadthFirstDirectedPaths bfdpV = new BreadthFirstDirectedPaths(sap, v);
 	   BreadthFirstDirectedPaths bfdpW = new BreadthFirstDirectedPaths(sap, w);
@@ -51,7 +76,9 @@ public class SAP {
 	   return ancestor;
    }
    
-   private void bfdpIter(Iterable<Integer> v, Iterable<Integer> w) {	   
+   private void bfdpIter(Iterable<Integer> v, Iterable<Integer> w) {
+	   checkBounds(v,w);
+	   
 	   BreadthFirstDirectedPaths bfdpV = new BreadthFirstDirectedPaths(sap, v);
 	   BreadthFirstDirectedPaths bfdpW = new BreadthFirstDirectedPaths(sap, w);
 	   minDist = -1;
