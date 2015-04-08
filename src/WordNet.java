@@ -7,12 +7,13 @@ public class WordNet {
 	private Digraph hypernym;
 	private SAP sap;
 	
+	// Nodes for nouns
 	private class Node {
-		private int value;
+		private int id;
 		private Node next;
 		
-		public Node(int value) {
-			this.value = value;
+		public Node(int id) {
+			this.id = id;
 		}
 	}
 
@@ -24,23 +25,30 @@ public class WordNet {
    
    // reads synsets file and creates hashmap of nouns
    private void readSynsets(String synsets) {
+	   
 	   synset = new HashMap<Integer, String>();
 	   nounLU = new HashMap<String, Node>();
 	   In in = new In(synsets);
+	   
 	   while (!in.isEmpty()) {
 		   String l = in.readLine();		   
 		   String[] fields = l.split(",");
 		   String[] nouns = fields[1].split(" ");
+		   
 		   for (int i = 0; i < nouns.length; i++) {
-			   if (synset.containsKey(nouns[i])) {
+			   
+			   if (nounLU.containsKey(nouns[i])) {
+				   
 				   Node temp = nounLU.get(nouns[i]);
 				   Node first = temp;
+				   
 				   while (temp.next != null) {
 					   temp = temp.next;
 				   }
-				   temp.next = new Node(Integer.parseInt(fields[0]));
 				   
+				   temp.next = new Node(Integer.parseInt(fields[0]));				   
 				   nounLU.put(nouns[i], first);
+				   
 			   } else {
 				   nounLU.put(nouns[i], new Node(Integer.parseInt(fields[0])));
 			   }
@@ -52,15 +60,18 @@ public class WordNet {
    
    // reads hypernyms file and creates digraph
    private void readHypernyms(String hypernyms) {
+	   
 	   hypernym = new Digraph(numSynsets);
 	   In in = new In(hypernyms);
 	   int roots = 0;
 	   boolean[] rootCheck = new boolean[numSynsets];
+	   
 	   while (!in.isEmpty()) {
 		   String l = in.readLine();
 		   String[] fields = l.split(",");		   
 		   int numFields = fields.length;
 		   
+		   // if only 1 field in string, possible root
 		   if (numFields == 1) roots++;
 		   rootCheck[Integer.parseInt(fields[0])] = true;
 		   
@@ -69,11 +80,13 @@ public class WordNet {
 		   }
 	   }
 	   
+	   // test for only 1 possible root
 	   for (int i = 0; i < rootCheck.length; i++) {
 		   if (!rootCheck[i]) roots++;
-	   }
-	   
+	   }	   
 	   if (roots != 1) throw new java.lang.IllegalArgumentException();
+	   
+	   // test for DAG
 	   KosarajuSharirSCC testDag = new KosarajuSharirSCC(hypernym);
        if (testDag.count() > numSynsets)
            throw new java.lang.IllegalArgumentException();
@@ -126,7 +139,7 @@ public class WordNet {
 				   }
 				   
 				   public Integer next() {
-					   Integer val = curr.value;
+					   Integer val = curr.id;
 					   curr = curr.next;
 					   return val;
 				   }
@@ -140,13 +153,10 @@ public class WordNet {
 
    // do unit testing of this class
    public static void main(String[] args) {
-	   WordNet wordnet = new WordNet("synsets.txt", "hypernyms.txt");	   
-	   StdOut.printf(wordnet.hypernym.toString());
-	   StdOut.printf(wordnet.synset.toString());
-	   for (String noun: wordnet.nouns()) {
-		   StdOut.println(noun);
-	   }
+	   WordNet wordnet = new WordNet("synsets.txt", "hypernyms.txt");
+	   StdOut.println("Number of synsets: " + wordnet.numSynsets);
 	   assert !wordnet.isNoun("zzyzyzz");
 	   assert wordnet.isNoun("subpart");
+	   StdOut.println(wordnet.sap("worm", "bird"));
    }
 }
